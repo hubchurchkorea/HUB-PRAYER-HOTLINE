@@ -140,9 +140,13 @@ async function signInWithKakao() {
   async function toggleReaction(prayerId, kind) {
     const existing = reactions.find(r => r.prayer_id === prayerId && r.device_id === deviceId && r.kind === kind)
     if (existing) {
+      setReactions(rs => rs.filter(r => r.id !== existing.id))
       await supabase.from('reactions').delete().eq('id', existing.id)
     } else {
+      const tempId = 'temp-' + Date.now()
+      setReactions(rs => [...rs, { id: tempId, prayer_id: prayerId, device_id: deviceId, kind }])
       await supabase.from('reactions').insert({ prayer_id: prayerId, device_id: deviceId, kind })
+      fetchAll()
     }
   }
 
