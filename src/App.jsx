@@ -39,6 +39,7 @@ export default function App() {
   const [openReplies, setOpenReplies] = useState({})
   const [replyDrafts, setReplyDrafts] = useState({})
   const [toast, setToast] = useState('')
+  const [todayVisitors, setTodayVisitors] = useState(0)
   const toastTimer = useRef(null)
   const exportRef = useRef(null)
 
