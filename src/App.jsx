@@ -100,8 +100,11 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(''), 1800)
   }
 
-  async function signInWithKakao() {
-    await supabase.auth.signInWithOAuth({ provider: 'kakao' })
+async function signInWithKakao() {
+    await supabase.auth.signInWithOAuth({
+      provider: 'kakao',
+      options: { scopes: 'profile_nickname profile_image' }
+    })
   }
 
   async function handleLogin(e) {
