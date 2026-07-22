@@ -1,282 +1,154 @@
-import { useEffect, useRef, useState } from 'react'
-import html2canvas from 'html2canvas'
-import { supabase } from './lib/supabaseClient'
-import { getDeviceId } from './lib/deviceId'
-
-const THEMES = [
-  { name: '심야 라인', bg:'#12141C', surface:'#1B1E29', primaryTint:'rgba(255,107,74,0.14)', primary:'#FF6B4A', text:'#F2F0EA', textMuted:'#8B93A7', border:'#2B2F3D' },
-  { name: '온기 라인', bg:'#FBF3E7', surface:'#FFFFFF', primaryTint:'rgba(198,65,91,0.10)', primary:'#C6415B', text:'#2B2320', textMuted:'#8A7A6B', border:'#E9DCC9' },
-  { name: '은혜 라인', bg:'#F5F1F8', surface:'#FFFFFF', primaryTint:'rgba(108,79,161,0.10)', primary:'#6C4FA1', text:'#2E2438', textMuted:'#8D82A0', border:'#E4DCEC' },
-  { name: '새싹 라인', bg:'#F2F7F1', surface:'#FFFFFF', primaryTint:'rgba(63,122,82,0.10)', primary:'#3F7A52', text:'#223326', textMuted:'#7D9482', border:'#DCE8DC' },
-]
-
-const deviceId = getDeviceId()
-
-function formatDate(iso) {
-  const d = new Date(iso)
-  return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0')
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.5s ease, color 0.5s ease;
 }
+#app { max-width: 460px; margin: 0 auto; min-height: 100vh; position: relative; }
 
-export default function App() {
-  const [themeIndex, setThemeIndex] = useState(0)
-  const [session, setSession] = useState(null)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [showLogin, setShowLogin] = useState(false)
-  const [loginEmail, setLoginEmail] = useState('')
-  const [loginPw, setLoginPw] = useState('')
-  const [loginError, setLoginError] = useState('')
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newText, setNewText] = useState('')
-  const [prayers, setPrayers] = useState([])
-  const [reactions, setReactions] = useState([])
-  const [replies, setReplies] = useState([])
-  const [shares, setShares] = useState([])
-  const [openReplies, setOpenReplies] = useState({})
-  const [replyDrafts, setReplyDrafts] = useState({})
-  const [toast, setToast] = useState('')
-  const toastTimer = useRef(null)
-  const exportRef = useRef(null)
+.header {
+  padding: 28px 20px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+}
+.header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.brand-text .line1 {
+  font-family: 'Black Han Sans', sans-serif; font-weight: 400; font-size: 34px;
+  color: var(--text-muted); letter-spacing: 0px;
+}
+.brand-text .line2 {
+  font-family: 'Black Han Sans', sans-serif; font-weight: 400; font-size: 26px;
+  color: var(--primary); letter-spacing: 1px; line-height: 1.1;
+}
+.header-controls { display: flex; gap: 8px; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--surface); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-muted); transition: all 0.2s;
+}
+.icon-btn:hover { border-color: var(--primary); color: var(--primary); }
+.icon-btn.active { background: var(--primary); color: var(--surface); border-color: var(--primary); }
+.tagline { font-size: 12.5px; color: var(--text-muted); margin-top: 10px; line-height: 1.5; }
+.live-row { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--primary);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.4); }
+}
+.live-text { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-muted); letter-spacing: 0.5px; }
 
-  const t = THEMES[themeIndex]
+.kakao-row { margin-top: 12px; }
+.kakao-btn {
+  border: none; border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 700;
+  cursor: pointer; background: #FEE500; color: #391B1B; width: 100%;
+}
+.kakao-btn.logged-in { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-weight: 500; }
 
-  useEffect(() => {
-    document.documentElement.style.setProperty('--bg', t.bg)
-    document.documentElement.style.setProperty('--surface', t.surface)
-    document.documentElement.style.setProperty('--primary', t.primary)
-    document.documentElement.style.setProperty('--primary-tint', t.primaryTint)
-    document.documentElement.style.setProperty('--text', t.text)
-    document.documentElement.style.setProperty('--text-muted', t.textMuted)
-    document.documentElement.style.setProperty('--border', t.border)
-  }, [themeIndex])
+.add-bar { padding: 14px 20px 0; }
+.add-toggle-btn {
+  width: 100%; padding: 12px; border-radius: 10px; border: 1.5px dashed var(--primary);
+  background: transparent; color: var(--primary); font-weight: 700; font-size: 13.5px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.add-form {
+  margin-top: 10px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px;
+}
+.add-form label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px; font-weight: 500; }
+.add-form input, .add-form textarea {
+  width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px;
+  font-family: inherit; font-size: 13.5px; background: var(--bg); color: var(--text);
+  margin-bottom: 12px; resize: vertical;
+}
+.add-form textarea { min-height: 64px; }
+.add-form-actions { display: flex; gap: 8px; }
+.btn-primary, .btn-ghost {
+  flex: 1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none;
+}
+.btn-primary { background: var(--primary); color: var(--surface); }
+.btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
 
-  async function fetchAll() {
-    const [{ data: p }, { data: r }, { data: rp }, { data: s }] = await Promise.all([
-      supabase.from('prayers').select('*').order('created_at', { ascending: false }),
-      supabase.from('reactions').select('*'),
-      supabase.from('replies').select('*').order('created_at', { ascending: true }),
-      supabase.from('shares').select('*'),
-    ])
-    setPrayers(p || [])
-    setReactions(r || [])
-    setReplies(rp || [])
-    setShares(s || [])
-  }
+.feed { position: relative; padding: 20px 20px 60px 34px; }
+.cable {
+  position: absolute; left: 20px; top: 20px; bottom: 60px; width: 2px;
+  background: var(--border); border-radius: 2px;
+}
+.card-wrap { position: relative; margin-bottom: 18px; }
+.jack {
+  position: absolute; left: -22px; top: 22px; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--primary); border: 2px solid var(--surface); box-shadow: 0 0 0 2px var(--border);
+}
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px;
+}
+.card-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; gap: 8px; }
+.card-name { font-weight: 700; font-size: 14.5px; }
+.card-date { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.card-text { font-size: 14px; line-height: 1.65; color: var(--text); margin-bottom: 14px; }
 
-  async function checkAdmin(currentSession) {
-    if (!currentSession) { setIsAdmin(false); return }
-    const { data } = await supabase.from('admins').select('user_id').eq('user_id', currentSession.user.id).maybeSingle()
-    setIsAdmin(!!data)
-  }
+.reaction-row { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+.reaction-btn {
+  display: flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--bg); cursor: pointer; font-size: 12.5px;
+  color: var(--text-muted); transition: all 0.15s;
+}
+.reaction-btn.active { background: var(--primary-tint); border-color: var(--primary); color: var(--primary); font-weight: 700; }
+.reaction-btn span.emoji { font-size: 14px; }
 
-  useEffect(() => {
-    fetchAll()
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      checkAdmin(data.session)
-    })
-    const { data: authSub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s)
-      checkAdmin(s)
-    })
+.util-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.reply-toggle, .share-btn, .delete-prayer-btn {
+  display: flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer;
+  font-size: 12.5px; color: var(--text-muted); font-weight: 500;
+}
+.reply-toggle:hover, .share-btn:hover { color: var(--primary); }
+.delete-prayer-btn { color: var(--primary); }
 
-    const channel = supabase
-      .channel('hotline-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'prayers' }, fetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, fetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'replies' }, fetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shares' }, fetchAll)
-      .subscribe()
+.replies-panel { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.reply-item { display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-start; }
+.reply-avatar {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--primary-tint);
+  flex-shrink: 0; position: relative;
+}
+.reply-avatar::after {
+  content: ''; position: absolute; top: 50%; left: 50%; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--primary); transform: translate(-50%, -50%);
+}
+.reply-body { font-size: 12.5px; flex: 1; }
+.reply-delete {
+  background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 11px;
+  flex-shrink: 0; padding: 2px 6px; opacity: 0.7;
+}
+.reply-delete:hover { color: var(--primary); opacity: 1; }
+.reply-input-row { display: flex; gap: 6px; margin-top: 8px; }
+.reply-input-row input {
+  flex: 1; border: 1px solid var(--border); border-radius: 20px; padding: 8px 14px;
+  font-size: 12.5px; background: var(--bg); color: var(--text); font-family: inherit;
+}
+.reply-send { border: none; background: var(--primary); color: var(--surface); border-radius: 50%;
+  width: 32px; height: 32px; flex-shrink: 0; cursor: pointer; font-size: 14px; }
 
-    return () => {
-      authSub.subscription.unsubscribe()
-      supabase.removeChannel(channel)
-    }
-  }, [])
+.toast {
+  position: sticky; bottom: 16px; left: 0; margin: 0 auto; width: fit-content;
+  background: var(--text); color: var(--surface); padding: 9px 18px; border-radius: 20px;
+  font-size: 12.5px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 20;
+}
+.toast.show { opacity: 1; }
 
-  function showToast(msg) {
-    setToast(msg)
-    clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setToast(''), 1800)
-  }
-
-  async function signInWithKakao() {
-    await supabase.auth.signInWithOAuth({ provider: 'kakao' })
-  }
-
-  async function handleLogin(e) {
-    e.preventDefault()
-    setLoginError('')
-    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPw })
-    if (error) { setLoginError('로그인에 실패했습니다. 이메일/비밀번호를 확인해 주세요.'); return }
-    setShowLogin(false)
-    setLoginEmail(''); setLoginPw('')
-  }
-
-  async function handleLogout() {
-    await supabase.auth.signOut()
-    setIsAdmin(false)
-    setShowAddForm(false)
-  }
-
-  async function submitAdd() {
-    if (!newName.trim() || !newText.trim()) { showToast('이름과 기도제목을 모두 입력해 주세요'); return }
-    const { error } = await supabase.from('prayers').insert({ name: newName.trim(), content: newText.trim() })
-    if (error) { showToast('등록에 실패했습니다'); return }
-    setNewName(''); setNewText(''); setShowAddForm(false)
-    showToast('기도제목이 등록되었습니다')
-  }
-
-  async function deletePrayer(id) {
-    await supabase.from('prayers').delete().eq('id', id)
-    showToast('기도제목이 삭제되었습니다')
-  }
-
-  async function toggleReaction(prayerId, kind) {
-    const existing = reactions.find(r => r.prayer_id === prayerId && r.device_id === deviceId && r.kind === kind)
-    if (existing) {
-      await supabase.from('reactions').delete().eq('id', existing.id)
-    } else {
-      await supabase.from('reactions').insert({ prayer_id: prayerId, device_id: deviceId, kind })
-    }
-  }
-
-  async function sendReply(prayerId) {
-    const text = (replyDrafts[prayerId] || '').trim()
-    if (!text) return
-    await supabase.from('replies').insert({ prayer_id: prayerId, content: text })
-    setReplyDrafts(d => ({ ...d, [prayerId]: '' }))
-    showToast('응원의 메시지가 등록되었습니다')
-  }
-
-  async function deleteReply(id) {
-    await supabase.from('replies').delete().eq('id', id)
-    showToast('답글이 삭제되었습니다')
-  }
-
-  async function handleShare(p) {
-    await supabase.from('shares').insert({ prayer_id: p.id })
-    showToast('기도카드 이미지를 저장합니다')
-    exportPrayerImage(p)
-  }
-
-  async function exportPrayerImage(p) {
-    const el = exportRef.current
-    el.innerHTML = `
-      <div style="background:${t.surface}; border:1px solid ${t.border}; border-radius:20px; padding:32px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px;">
-          <div style="width:8px;height:8px;border-radius:50%;background:${t.primary};"></div>
-          <div style="font-family:'Black Han Sans',sans-serif; font-size:15px; color:${t.textMuted}; letter-spacing:0.5px;">허브 중보기도 HOTLINE</div>
-        </div>
-        <div style="font-size:22px; font-weight:700; color:${t.text}; margin-bottom:4px;">${p.name}</div>
-        <div style="font-family:'Space Mono',monospace; font-size:12px; color:${t.textMuted}; margin-bottom:18px;">${formatDate(p.created_at)}</div>
-        <div style="font-size:15.5px; line-height:1.8; color:${t.text}; margin-bottom:28px;">${p.content}</div>
-        <div style="border-top:1px solid ${t.border}; padding-top:14px; display:flex; justify-content:space-between; align-items:center;">
-          <div style="font-size:12px; color:${t.textMuted};">함께 기도해 주세요</div>
-          <div style="font-family:'Black Han Sans',sans-serif; font-size:13px; color:${t.primary};">허브교회</div>
-        </div>
-      </div>
-    `
-    const canvas = await html2canvas(el, { backgroundColor: t.bg, scale: 2 })
-    canvas.toBlob(blob => {
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = '허브중보기도_' + p.name.replace(/\s/g, '') + '.png'
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-    })
-  }
-
-  function countFor(prayerId, kind) {
-    return reactions.filter(r => r.prayer_id === prayerId && r.kind === kind).length
-  }
-  function reactedFor(prayerId, kind) {
-    return reactions.some(r => r.prayer_id === prayerId && r.device_id === deviceId && r.kind === kind)
-  }
-  function repliesFor(prayerId) {
-    return replies.filter(r => r.prayer_id === prayerId)
-  }
-  function shareCountFor(prayerId) {
-    return shares.filter(s => s.prayer_id === prayerId).length
-  }
-
-  return (
-    <div id="app">
-      <div className="header">
-        <div className="header-top">
-          <div className="brand-text">
-            <div className="line1">허브 중보기도</div>
-            <div className="line2">HOTLINE</div>
-          </div>
-          <div className="header-controls">
-            <button className="icon-btn" title={'테마 변경 (' + t.name + ')'} onClick={() => { setThemeIndex((themeIndex+1) % THEMES.length); showToast(THEMES[(themeIndex+1)%THEMES.length].name + ' 적용됨') }}>
-              ◐
-            </button>
-            <button className={'icon-btn' + (isAdmin ? ' active' : '')} title="관리자 모드" onClick={() => { isAdmin ? handleLogout() : setShowLogin(true) }}>
-              🛡
-            </button>
-          </div>
-        </div>
-        <div className="tagline">누구든, 어디서든 — 하나님과 다이렉트로 연결되는 중보의 자리</div>
-        <div className="live-row"><div className="live-dot"></div><div className="live-text">지금 이 순간에도 연결되어 있습니다</div></div>
-        <div className="kakao-row">
-          {session && !isAdmin ? (
-            <button className="kakao-btn logged-in" onClick={handleLogout}>
-              카카오 로그인됨 · 로그아웃
-            </button>
-          ) : !session ? (
-            <button className="kakao-btn" onClick={signInWithKakao}>
-              카카오로 로그인
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      {isAdmin && (
-        <div className="add-bar">
-          {!showAddForm ? (
-            <button className="add-toggle-btn" onClick={() => setShowAddForm(true)}>+ 새 중보기도 제목 등록</button>
-          ) : (
-            <div className="add-form">
-              <label>환우 이름 (예: 김OO 집사님)</label>
-              <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="이름을 입력하세요" />
-              <label>기도 제목</label>
-              <textarea value={newText} onChange={e => setNewText(e.target.value)} placeholder="기도 제목을 입력하세요" />
-              <div className="add-form-actions">
-                <button className="btn-ghost" onClick={() => setShowAddForm(false)}>취소</button>
-                <button className="btn-primary" onClick={submitAdd}>등록하기</button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="feed">
-        <div className="cable"></div>
-        {prayers.map(p => (
-          <div className="card-wrap" key={p.id}>
-            <div className="jack"></div>
-            <div className="card">
-              <div className="card-top">
-                <div className="card-name">{p.name}</div>
-                <div className="card-date">{formatDate(p.created_at)}</div>
-              </div>
-              <div className="card-text">{p.content}</div>
-              <div className="reaction-row">
-                {['heart','pray','like'].map(kind => (
-                  <button key={kind} className={'reaction-btn' + (reactedFor(p.id, kind) ? ' active' : '')} onClick={() => toggleReaction(p.id, kind)}>
-                    <span className="emoji">{kind === 'heart' ? '❤️' : kind === 'pray' ? '🙏' : '👍'}</span>
-                    <span>{countFor(p.id, kind)}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="util-row">
-                <button className="reply-toggle" onClick={() => setOpenReplies(o => ({ ...o, [p.id]: !o[p.id] }))}>
-                  💬 답글 {repliesFor(p.id).length}개
-                </button>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  {isAdmin && <button className="delete-prayer-btn" onClick={() => deletePrayer(p.id)}>삭제</button>}
-                  <button
+.login-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex;
+  align-items: center; justify-content: center; z-index: 50; padding: 20px;
+}
+.login-box {
+  background: var(--surface); border-radius: 14px; padding: 24px; width: 100%; max-width: 320px;
+}
+.login-box h3 { font-size: 15px; margin-bottom: 14px; }
+.login-box input {
+  width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px;
+  font-size: 13.5px; margin-bottom: 10px; background: var(--bg); color: var(--text);
+}
+.login-error { color: var(--primary); font-size: 12px; margin-bottom: 10px; }
