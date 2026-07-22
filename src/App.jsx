@@ -216,7 +216,10 @@ async function signInWithKakao() {
             <div className="line1">허브 중보기도</div>
             <div className="line2">HOTLINE</div>
           </div>
-          <div className="header-controls">
+<div className="header-controls">
+            <button className="icon-btn" title="새로고침" onClick={() => { fetchAll(); showToast('최신 내용으로 갱신했습니다') }}>
+              ⟳
+            </button>
             <button className="icon-btn" title={'테마 변경 (' + t.name + ')'} onClick={() => { setThemeIndex((themeIndex+1) % THEMES.length); showToast(THEMES[(themeIndex+1)%THEMES.length].name + ' 적용됨') }}>
               ◐
             </button>
