@@ -74,8 +74,19 @@ export default function App() {
     setIsAdmin(!!data)
   }
 
+  async function recordVisitAndCount() {
+    const today = todayKST()
+    await supabase.from('visits').insert({ device_id: deviceId, visit_date: today })
+    const { count } = await supabase
+      .from('visits')
+      .select('*', { count: 'exact', head: true })
+      .eq('visit_date', today)
+    setTodayVisitors(count || 0)
+  }
+
   useEffect(() => {
     fetchAll()
+    recordVisitAndCount()
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       checkAdmin(data.session)
