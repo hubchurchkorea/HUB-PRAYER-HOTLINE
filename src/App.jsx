@@ -100,6 +100,10 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(''), 1800)
   }
 
+  async function signInWithKakao() {
+    await supabase.auth.signInWithOAuth({ provider: 'kakao' })
+  }
+
   async function handleLogin(e) {
     e.preventDefault()
     setLoginError('')
@@ -218,6 +222,17 @@ export default function App() {
         </div>
         <div className="tagline">누구든, 어디서든 — 하나님과 다이렉트로 연결되는 중보의 자리</div>
         <div className="live-row"><div className="live-dot"></div><div className="live-text">지금 이 순간에도 연결되어 있습니다</div></div>
+        <div className="kakao-row">
+          {session && !isAdmin ? (
+            <button className="kakao-btn logged-in" onClick={handleLogout}>
+              카카오 로그인됨 · 로그아웃
+            </button>
+          ) : !session ? (
+            <button className="kakao-btn" onClick={signInWithKakao}>
+              카카오로 로그인
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {isAdmin && (
@@ -264,51 +279,4 @@ export default function App() {
                 </button>
                 <div style={{ display: 'flex', gap: 12 }}>
                   {isAdmin && <button className="delete-prayer-btn" onClick={() => deletePrayer(p.id)}>삭제</button>}
-                  <button className="share-btn" onClick={() => handleShare(p)}>↗ 공유 {shareCountFor(p.id)}</button>
-                </div>
-              </div>
-              {openReplies[p.id] && (
-                <div className="replies-panel">
-                  {repliesFor(p.id).map(r => (
-                    <div className="reply-item" key={r.id}>
-                      <div className="reply-avatar"></div>
-                      <div className="reply-body">{r.content}</div>
-                      {isAdmin && <button className="reply-delete" onClick={() => deleteReply(r.id)}>삭제</button>}
-                    </div>
-                  ))}
-                  <div className="reply-input-row">
-                    <input
-                      value={replyDrafts[p.id] || ''}
-                      onChange={e => setReplyDrafts(d => ({ ...d, [p.id]: e.target.value }))}
-                      placeholder="함께 기도한다는 응원의 한마디..."
-                    />
-                    <button className="reply-send" onClick={() => sendReply(p.id)}>➤</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className={'toast' + (toast ? ' show' : '')}>{toast}</div>
-
-      <div ref={exportRef} style={{ position: 'absolute', left: -9999, top: 0, width: 420 }}></div>
-
-      {showLogin && (
-        <div className="login-overlay" onClick={() => setShowLogin(false)}>
-          <form className="login-box" onClick={e => e.stopPropagation()} onSubmit={handleLogin}>
-            <h3>관리자 로그인</h3>
-            {loginError && <div className="login-error">{loginError}</div>}
-            <input type="email" placeholder="이메일" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required />
-            <input type="password" placeholder="비밀번호" value={loginPw} onChange={e => setLoginPw(e.target.value)} required />
-            <div className="add-form-actions">
-              <button type="button" className="btn-ghost" onClick={() => setShowLogin(false)}>취소</button>
-              <button type="submit" className="btn-primary">로그인</button>
-            </div>
-          </form>
-        </div>
-      )}
-    </div>
-  )
-}
+                  <button
