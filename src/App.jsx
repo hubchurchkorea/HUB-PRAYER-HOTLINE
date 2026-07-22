@@ -14,9 +14,11 @@ const deviceId = getDeviceId()
 
 function formatDate(iso) {
   const d = new Date(iso)
-  const date = d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0')
-  const time = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0')
-  return date + ' ' + time
+  return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0')
+}
+
+function todayKST() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
 }
 
 export default function App() {
