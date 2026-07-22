@@ -150,12 +150,15 @@ async function signInWithKakao() {
     }
   }
 
-  async function sendReply(prayerId) {
+async function sendReply(prayerId) {
     const text = (replyDrafts[prayerId] || '').trim()
     if (!text) return
-    await supabase.from('replies').insert({ prayer_id: prayerId, content: text })
+    const tempId = 'temp-' + Date.now()
+    setReplies(rs => [...rs, { id: tempId, prayer_id: prayerId, content: text }])
     setReplyDrafts(d => ({ ...d, [prayerId]: '' }))
     showToast('응원의 메시지가 등록되었습니다')
+    await supabase.from('replies').insert({ prayer_id: prayerId, content: text })
+    fetchAll()
   }
 
   async function deleteReply(id) {
