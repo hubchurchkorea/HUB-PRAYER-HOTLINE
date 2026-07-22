@@ -250,7 +250,7 @@ async function sendReply(prayerId) {
           </div>
         </div>
         <div className="tagline">누구든, 어디서든 — 하나님과 다이렉트로 연결되는 중보의 자리</div>
-        <div className="live-row"><div className="live-dot"></div><div className="live-text">지금 이 순간에도 연결되어 있습니다</div></div>
+        <div className="live-row"><div className="live-dot"></div><div className="live-text">오늘 {todayVisitors}명이 함께 중보하고 있습니다</div></div>
         <div className="kakao-row">
           {session && !isAdmin ? (
             <button className="kakao-btn logged-in" onClick={handleLogout}>
