@@ -429,7 +429,11 @@ function openEdit(p) {
             <button className="icon-btn" title={'테마 변경 (' + t.name + ')'} onClick={() => { setThemeIndex((themeIndex+1) % THEMES.length); showToast(THEMES[(themeIndex+1)%THEMES.length].name + ' 적용됨') }}>
               ◐
             </button>
-            
+            {isSuperAdmin && (
+              <button className="icon-btn" title="수정 이력 (최고관리자 전용)" onClick={() => { setShowEditHistory(v => !v); fetchEditHistory() }}>
+                ✎
+              </button>
+            )}
             <button className={'icon-btn' + (isAdmin ? ' active' : '')} title="관리자 모드" onClick={() => { isAdmin ? handleLogout() : setShowLogin(true) }}>
               🛡
             </button>
