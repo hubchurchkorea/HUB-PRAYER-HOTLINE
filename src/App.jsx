@@ -295,17 +295,16 @@ function openEdit(p) {
 
   async function submitEdit() {
     if (!editName.trim() || !editText.trim()) { showToast('이름과 기도제목을 모두 입력해 주세요'); return }
-    const target = prayers.find(pr => pr.id === editingId)
-    if (!target) return
-    await supabase.from('prayer_edit_history').insert({
-      prayer_id: editingId,
-      edited_by: session?.user?.id,
+    await supabase.from('prayers').update({
+      name: editName.trim(),
+      content: editText.trim(),
+      updated_at: new Date().toISOString(),
       edited_by_name: adminName,
-      old_name: target.name,
-      old_content: target.content,
-      new_name: editName.trim(),
-      new_content: editText.trim(),
-    })
+    }).eq('id', editingId)
+    setEditingId(null)
+    showToast('수정되었습니다')
+    fetchAll()
+  }
     await supabase.from('prayers').update({
       name: editName.trim(),
       content: editText.trim(),
