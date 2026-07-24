@@ -387,10 +387,7 @@ export default function App() {
             <button className="icon-btn" title={'테마 변경 (' + t.name + ')'} onClick={() => { setThemeIndex((themeIndex+1) % THEMES.length); showToast(THEMES[(themeIndex+1)%THEMES.length].name + ' 적용됨') }}>
               ◐
             </button>
-            {isAdmin && (
-              <button className="icon-btn" title="방문 기록" onClick={() => { setShowVisitLog(v => !v); fetchVisitLog() }}>
-                ▤
-              </button>
+            
             )}
             <button className={'icon-btn' + (isAdmin ? ' active' : '')} title="관리자 모드" onClick={() => { isAdmin ? handleLogout() : setShowLogin(true) }}>
               🛡
