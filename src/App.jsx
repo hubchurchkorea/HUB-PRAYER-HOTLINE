@@ -427,9 +427,7 @@ export default function App() {
               <button className="kakao-btn logged-in" onClick={handleLogout}>
                 카카오 로그인됨 · 로그아웃
               </button>
-              <button className="kakao-btn-secondary" onClick={requestTalkConsent}>
-                🔔 카톡으로 승인 알림 받기
-              </button>
+        
               {profile?.status === 'pending' && (
                 <div className="status-badge pending">승인 대기중</div>
               )}
