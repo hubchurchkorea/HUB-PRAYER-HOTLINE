@@ -151,8 +151,8 @@ export default function App() {
     showToast('승인되었습니다')
     fetchPendingProfiles()
     supabase.functions.invoke('send-kakao-notification', { body: { user_id: userId } })
+    supabase.functions.invoke('send-approval-email', { body: { user_id: userId } })
   }
-
   async function rejectProfile(userId) {
     await supabase.from('profiles').update({ status: 'rejected' }).eq('user_id', userId)
     showToast('거절 처리되었습니다')
