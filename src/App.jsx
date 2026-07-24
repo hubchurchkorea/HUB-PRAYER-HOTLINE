@@ -182,12 +182,6 @@ export default function App() {
       .eq('visit_date', today)
     setTodayVisitors(count || 0)
   }
-
-  async function fetchVisitLog() {
-    const { data } = await supabase.from('visits').select('*').order('created_at', { ascending: false }).limit(50)
-    setVisitLog(data || [])
-  }
-
   useEffect(() => {
     fetchAll()
     recordVisitAndCount(null)
