@@ -377,8 +377,8 @@ export default function App() {
                 카카오 로그인됨 · 로그아웃
               </button>
               {profile?.status === 'pending' && (
-                <div className="status-badge pending">관리자 승인 대기 중이에요 — 승인되면 반응·답글이 가능합니다</div>
-              )}
+  <div className="status-badge pending">관리자 승인까지 최대 하루 정도 걸릴 수 있어요. 조금만 기다려 주세요 🙏</div>
+)}
               {profile?.status === 'rejected' && (
                 <div className="status-badge rejected">이용이 제한된 계정입니다</div>
               )}
