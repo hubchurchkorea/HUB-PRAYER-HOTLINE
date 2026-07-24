@@ -87,12 +87,9 @@ export default function App() {
   const [pendingProfiles, setPendingProfiles] = useState([])
   const [showApprovalPanel, setShowApprovalPanel] = useState(false)
   const [adminName, setAdminName] = useState('')
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
   const [editText, setEditText] = useState('')
-  const [showEditHistory, setShowEditHistory] = useState(false)
-  const [editHistory, setEditHistory] = useState([])
   const toastTimer = useRef(null)
   const exportRef = useRef(null)
 
@@ -121,12 +118,11 @@ export default function App() {
     setShares(s || [])
   }
 
- async function checkAdmin(currentSession) {
-    if (!currentSession) { setIsAdmin(false); setAdminName(''); setIsSuperAdmin(false); return }
-    const { data } = await supabase.from('admins').select('user_id, name, is_super').eq('user_id', currentSession.user.id).maybeSingle()
+  async function checkAdmin(currentSession) {
+    if (!currentSession) { setIsAdmin(false); setAdminName(''); return }
+    const { data } = await supabase.from('admins').select('user_id, name').eq('user_id', currentSession.user.id).maybeSingle()
     setIsAdmin(!!data)
     setAdminName(data?.name || '관리자')
-    setIsSuperAdmin(!!data?.is_super)
   }
 
   async function fetchProfile(currentSession) {
@@ -189,6 +185,7 @@ export default function App() {
       .eq('visit_date', today)
     setTodayVisitors(count || 0)
   }
+
   useEffect(() => {
     fetchAll()
     recordVisitAndCount(null)
@@ -287,7 +284,8 @@ export default function App() {
     showToast('기도제목이 삭제되었습니다')
     fetchAll()
   }
-function openEdit(p) {
+
+  function openEdit(p) {
     setEditingId(p.id)
     setEditName(p.name)
     setEditText(p.content)
@@ -305,23 +303,7 @@ function openEdit(p) {
     showToast('수정되었습니다')
     fetchAll()
   }
-    await supabase.from('prayers').update({
-      name: editName.trim(),
-      content: editText.trim(),
-      updated_at: new Date().toISOString(),
-      edited_by: session?.user?.id,
-      edited_by_name: adminName,
-    }).eq('id', editingId)
-    setEditingId(null)
-    showToast('수정되었습니다')
-    fetchAll()
-  }
 
-  async function fetchEditHistory() {
-    const { data } = await supabase.from('prayer_edit_history').select('*').order('edited_at', { ascending: false }).limit(50)
-    setEditHistory(data || [])
-  }
-  
   function canParticipate() {
     if (!session) { showToast('카카오 로그인 후 이용할 수 있습니다'); return false }
     if (!profile || profile.status === 'pending') { showToast('관리자 승인을 기다리고 있습니다'); return false }
@@ -433,7 +415,6 @@ function openEdit(p) {
             </button>
           </div>
         </div>
-
         <div className="tagline">누구든, 어디서든 — 하나님과 다이렉트로 연결되는 중보의 자리</div>
         <div className="live-row"><div className="live-dot"></div><div className="live-text">오늘 {todayVisitors}명이 함께 중보하고 있습니다</div></div>
         <div className="verse-row">
@@ -450,7 +431,7 @@ function openEdit(p) {
                 🔔 카톡으로 승인 알림 받기
               </button>
               {profile?.status === 'pending' && (
-                <div className="status-badge pending">관리자 승인까지 최대 하루 정도 걸릴 수 있어요. 조금만 기다려 주세요 🙏</div>
+                <div className="status-badge pending">승인 대기중</div>
               )}
               {profile?.status === 'rejected' && (
                 <div className="status-badge rejected">이용이 제한된 계정입니다</div>
@@ -536,7 +517,7 @@ function openEdit(p) {
                   💬 답글 {repliesFor(p.id).length}개
                 </button>
                 <div style={{ display: 'flex', gap: 12 }}>
-                 {isAdmin && <button className="edit-prayer-btn" onClick={() => openEdit(p)}>수정</button>}
+                  {isAdmin && <button className="edit-prayer-btn" onClick={() => openEdit(p)}>수정</button>}
                   {isAdmin && <button className="delete-prayer-btn" onClick={() => deletePrayer(p.id)}>삭제</button>}
                   <button className="share-btn" onClick={() => handleShare(p)}>↗ 공유 {shareCountFor(p.id)}</button>
                 </div>
@@ -587,6 +568,26 @@ function openEdit(p) {
             <div className="add-form-actions">
               <button type="button" className="btn-ghost" onClick={handleLogout}>취소</button>
               <button type="button" className="btn-primary" onClick={submitIntake}>제출하기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingId && (
+        <div className="login-overlay" onClick={() => setEditingId(null)}>
+          <div className="login-box" onClick={e => e.stopPropagation()}>
+            <h3>기도제목 수정</h3>
+            <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>환우 이름</label>
+            <input type="text" value={editName} onChange={e => setEditName(e.target.value)} />
+            <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', margin: '10px 0 4px' }}>기도 제목</label>
+            <textarea
+              value={editText}
+              onChange={e => setEditText(e.target.value)}
+              style={{ width: '100%', minHeight: 100, border: '1px solid var(--border)', borderRadius: 8, padding: 9, fontFamily: 'inherit', fontSize: 13.5, background: 'var(--bg)', color: 'var(--text)', marginBottom: 12, resize: 'vertical' }}
+            />
+            <div className="add-form-actions">
+              <button type="button" className="btn-ghost" onClick={() => setEditingId(null)}>취소</button>
+              <button type="button" className="btn-primary" onClick={submitEdit}>저장하기</button>
             </div>
           </div>
         </div>
