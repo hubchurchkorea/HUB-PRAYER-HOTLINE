@@ -87,6 +87,12 @@ export default function App() {
   const [pendingProfiles, setPendingProfiles] = useState([])
   const [showApprovalPanel, setShowApprovalPanel] = useState(false)
   const [adminName, setAdminName] = useState('')
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editText, setEditText] = useState('')
+  const [showEditHistory, setShowEditHistory] = useState(false)
+  const [editHistory, setEditHistory] = useState([])
   const toastTimer = useRef(null)
   const exportRef = useRef(null)
 
