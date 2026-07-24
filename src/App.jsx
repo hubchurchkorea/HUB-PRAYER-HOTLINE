@@ -405,21 +405,7 @@ export default function App() {
             </button>
           </div>
         </div>
-        {isAdmin && showVisitLog && (
-          <div className="visit-log-box">
-            <div className="visit-log-title">최근 방문 기록</div>
-            {visitLog.length === 0 ? (
-              <div className="approval-empty">기록이 없습니다</div>
-            ) : (
-              visitLog.map(v => (
-                <div className="visit-log-item" key={v.id}>
-                  <span className="visit-log-name">{v.nickname || '익명'}</span>
-                  <span className="visit-log-time">{formatDateTime(v.created_at)}</span>
-                </div>
-              ))
-            )}
-          </div>
-        )}
+
         <div className="tagline">누구든, 어디서든 — 하나님과 다이렉트로 연결되는 중보의 자리</div>
         <div className="live-row"><div className="live-dot"></div><div className="live-text">오늘 {todayVisitors}명이 함께 중보하고 있습니다</div></div>
         <div className="verse-row">
