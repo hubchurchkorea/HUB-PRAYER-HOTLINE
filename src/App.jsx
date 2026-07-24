@@ -87,8 +87,6 @@ export default function App() {
   const [pendingProfiles, setPendingProfiles] = useState([])
   const [showApprovalPanel, setShowApprovalPanel] = useState(false)
   const [adminName, setAdminName] = useState('')
-  const [showVisitLog, setShowVisitLog] = useState(false)
-  const [visitLog, setVisitLog] = useState([])
   const toastTimer = useRef(null)
   const exportRef = useRef(null)
 
