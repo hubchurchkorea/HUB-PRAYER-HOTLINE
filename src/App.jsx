@@ -388,7 +388,6 @@ export default function App() {
               ◐
             </button>
             
-            )}
             <button className={'icon-btn' + (isAdmin ? ' active' : '')} title="관리자 모드" onClick={() => { isAdmin ? handleLogout() : setShowLogin(true) }}>
               🛡
             </button>
