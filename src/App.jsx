@@ -121,11 +121,12 @@ export default function App() {
     setShares(s || [])
   }
 
-  async function checkAdmin(currentSession) {
-    if (!currentSession) { setIsAdmin(false); setAdminName(''); return }
-    const { data } = await supabase.from('admins').select('user_id, name').eq('user_id', currentSession.user.id).maybeSingle()
+ async function checkAdmin(currentSession) {
+    if (!currentSession) { setIsAdmin(false); setAdminName(''); setIsSuperAdmin(false); return }
+    const { data } = await supabase.from('admins').select('user_id, name, is_super').eq('user_id', currentSession.user.id).maybeSingle()
     setIsAdmin(!!data)
     setAdminName(data?.name || '관리자')
+    setIsSuperAdmin(!!data?.is_super)
   }
 
   async function fetchProfile(currentSession) {
