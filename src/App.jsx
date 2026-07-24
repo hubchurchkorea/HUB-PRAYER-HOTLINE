@@ -287,7 +287,42 @@ export default function App() {
     showToast('기도제목이 삭제되었습니다')
     fetchAll()
   }
+function openEdit(p) {
+    setEditingId(p.id)
+    setEditName(p.name)
+    setEditText(p.content)
+  }
 
+  async function submitEdit() {
+    if (!editName.trim() || !editText.trim()) { showToast('이름과 기도제목을 모두 입력해 주세요'); return }
+    const target = prayers.find(pr => pr.id === editingId)
+    if (!target) return
+    await supabase.from('prayer_edit_history').insert({
+      prayer_id: editingId,
+      edited_by: session?.user?.id,
+      edited_by_name: adminName,
+      old_name: target.name,
+      old_content: target.content,
+      new_name: editName.trim(),
+      new_content: editText.trim(),
+    })
+    await supabase.from('prayers').update({
+      name: editName.trim(),
+      content: editText.trim(),
+      updated_at: new Date().toISOString(),
+      edited_by: session?.user?.id,
+      edited_by_name: adminName,
+    }).eq('id', editingId)
+    setEditingId(null)
+    showToast('수정되었습니다')
+    fetchAll()
+  }
+
+  async function fetchEditHistory() {
+    const { data } = await supabase.from('prayer_edit_history').select('*').order('edited_at', { ascending: false }).limit(50)
+    setEditHistory(data || [])
+  }
+  
   function canParticipate() {
     if (!session) { showToast('카카오 로그인 후 이용할 수 있습니다'); return false }
     if (!profile || profile.status === 'pending') { showToast('관리자 승인을 기다리고 있습니다'); return false }
