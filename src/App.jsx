@@ -500,9 +500,7 @@ export default function App() {
               {isAdmin && p.created_by_name && (
                 <div className="posted-by">등록: {p.created_by_name}</div>
               )}
-              {p.updated_at && (
-                <div className="edited-badge">수정됨 · {formatDateTime(p.updated_at)}</div>
-              )}
+              
               <div className="card-text">{p.content}</div>
               <div className="reaction-row">
                 {['heart','pray','like'].map(kind => (
