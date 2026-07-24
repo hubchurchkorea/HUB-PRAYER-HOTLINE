@@ -24,9 +24,9 @@ body {
 }
 .header-controls { display: flex; gap: 8px; }
 .icon-btn {
-  width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border);
+  width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--border);
   background: var(--surface); display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: var(--text-muted); transition: all 0.2s;
+  cursor: pointer; color: var(--text-muted); transition: all 0.2s; font-size: 20px;
 }
 .icon-btn:hover { border-color: var(--primary); color: var(--primary); }
 .icon-btn.active { background: var(--primary); color: var(--surface); border-color: var(--primary); }
