@@ -50,6 +50,13 @@ function formatDate(iso) {
   return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0')
 }
 
+function formatDateTime(iso) {
+  const d = new Date(iso)
+  const date = d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0')
+  const time = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0')
+  return date + ' ' + time
+}
+
 function todayKST() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' })
 }
@@ -79,6 +86,9 @@ export default function App() {
   const [intakeCell, setIntakeCell] = useState('')
   const [pendingProfiles, setPendingProfiles] = useState([])
   const [showApprovalPanel, setShowApprovalPanel] = useState(false)
+  const [adminName, setAdminName] = useState('')
+  const [showVisitLog, setShowVisitLog] = useState(false)
+  const [visitLog, setVisitLog] = useState([])
   const toastTimer = useRef(null)
   const exportRef = useRef(null)
 
@@ -108,9 +118,10 @@ export default function App() {
   }
 
   async function checkAdmin(currentSession) {
-    if (!currentSession) { setIsAdmin(false); return }
-    const { data } = await supabase.from('admins').select('user_id').eq('user_id', currentSession.user.id).maybeSingle()
+    if (!currentSession) { setIsAdmin(false); setAdminName(''); return }
+    const { data } = await supabase.from('admins').select('user_id, name').eq('user_id', currentSession.user.id).maybeSingle()
     setIsAdmin(!!data)
+    setAdminName(data?.name || '관리자')
   }
 
   async function fetchProfile(currentSession) {
@@ -138,7 +149,7 @@ export default function App() {
     if (error) { showToast('제출에 실패했습니다'); return }
     setProfile(data)
     setShowIntakeForm(false)
-    showToast('제출되었습니다. 관리자 승인을 기다려 주세요')
+    showToast('제출되었습니다. 관리자 승인까지 최대 하루 정도 걸릴 수 있어요')
   }
 
   async function fetchPendingProfiles() {
@@ -153,15 +164,20 @@ export default function App() {
     supabase.functions.invoke('send-kakao-notification', { body: { user_id: userId } })
     supabase.functions.invoke('send-approval-email', { body: { user_id: userId } })
   }
+
   async function rejectProfile(userId) {
     await supabase.from('profiles').update({ status: 'rejected' }).eq('user_id', userId)
     showToast('거절 처리되었습니다')
     fetchPendingProfiles()
   }
 
-  async function recordVisitAndCount() {
+  async function recordVisitAndCount(currentSession) {
     const today = todayKST()
-    await supabase.from('visits').insert({ device_id: deviceId, visit_date: today })
+    const nickname = currentSession?.user?.user_metadata?.name || currentSession?.user?.user_metadata?.full_name || null
+    await supabase.from('visits').upsert(
+      { device_id: deviceId, visit_date: today, user_id: currentSession?.user?.id || null, nickname },
+      { onConflict: 'device_id,visit_date' }
+    )
     const { count } = await supabase
       .from('visits')
       .select('*', { count: 'exact', head: true })
@@ -169,30 +185,25 @@ export default function App() {
     setTodayVisitors(count || 0)
   }
 
-  async function saveKakaoToken(s) {
-    if (!s?.provider_token) return
-    const expiresAt = new Date(Date.now() + 11 * 60 * 60 * 1000).toISOString()
-    await supabase.from('kakao_tokens').upsert({
-      user_id: s.user.id,
-      access_token: s.provider_token,
-      refresh_token: s.provider_refresh_token,
-      expires_at: expiresAt,
-    })
+  async function fetchVisitLog() {
+    const { data } = await supabase.from('visits').select('*').order('created_at', { ascending: false }).limit(50)
+    setVisitLog(data || [])
   }
 
   useEffect(() => {
     fetchAll()
-    recordVisitAndCount()
+    recordVisitAndCount(null)
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       checkAdmin(data.session)
       fetchProfile(data.session)
+      if (data.session) recordVisitAndCount(data.session)
     })
     const { data: authSub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s)
       checkAdmin(s)
       fetchProfile(s)
-      if (event === 'SIGNED_IN') saveKakaoToken(s)
+      if (event === 'SIGNED_IN') recordVisitAndCount(s)
     })
 
     const channel = supabase
@@ -223,6 +234,26 @@ export default function App() {
     await supabase.auth.signInWithOAuth({ provider: 'kakao' })
   }
 
+  function requestTalkConsent() {
+    if (!session) return
+    const restApiKey = import.meta.env.VITE_KAKAO_REST_API_KEY
+    const redirectUri = encodeURIComponent('https://hmmkthsltmriyrbnaotq.supabase.co/functions/v1/kakao-talk-consent-callback')
+    const url = `https://kauth.kakao.com/oauth/authorize?client_id=${restApiKey}&redirect_uri=${redirectUri}&response_type=code&scope=talk_message&state=${session.user.id}`
+    window.location.href = url
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const result = params.get('talk_consent')
+    if (result === 'success') showToast('카톡 알림 동의가 완료되었습니다')
+    if (result === 'fail') showToast('카톡 알림 동의에 실패했습니다')
+    if (result) {
+      params.delete('talk_consent')
+      const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '')
+      window.history.replaceState({}, '', newUrl)
+    }
+  }, [])
+
   async function handleLogin(e) {
     e.preventDefault()
     setLoginError('')
@@ -240,7 +271,12 @@ export default function App() {
 
   async function submitAdd() {
     if (!newName.trim() || !newText.trim()) { showToast('이름과 기도제목을 모두 입력해 주세요'); return }
-    const { error } = await supabase.from('prayers').insert({ name: newName.trim(), content: newText.trim() })
+    const { error } = await supabase.from('prayers').insert({
+      name: newName.trim(),
+      content: newText.trim(),
+      created_by: session?.user?.id,
+      created_by_name: adminName,
+    })
     if (error) { showToast('등록에 실패했습니다'); return }
     setNewName(''); setNewText(''); setShowAddForm(false)
     showToast('기도제목이 등록되었습니다')
@@ -359,11 +395,31 @@ export default function App() {
             <button className="icon-btn" title={'테마 변경 (' + t.name + ')'} onClick={() => { setThemeIndex((themeIndex+1) % THEMES.length); showToast(THEMES[(themeIndex+1)%THEMES.length].name + ' 적용됨') }}>
               ◐
             </button>
+            {isAdmin && (
+              <button className="icon-btn" title="방문 기록" onClick={() => { setShowVisitLog(v => !v); fetchVisitLog() }}>
+                ▤
+              </button>
+            )}
             <button className={'icon-btn' + (isAdmin ? ' active' : '')} title="관리자 모드" onClick={() => { isAdmin ? handleLogout() : setShowLogin(true) }}>
               🛡
             </button>
           </div>
         </div>
+        {isAdmin && showVisitLog && (
+          <div className="visit-log-box">
+            <div className="visit-log-title">최근 방문 기록</div>
+            {visitLog.length === 0 ? (
+              <div className="approval-empty">기록이 없습니다</div>
+            ) : (
+              visitLog.map(v => (
+                <div className="visit-log-item" key={v.id}>
+                  <span className="visit-log-name">{v.nickname || '익명'}</span>
+                  <span className="visit-log-time">{formatDateTime(v.created_at)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
         <div className="tagline">누구든, 어디서든 — 하나님과 다이렉트로 연결되는 중보의 자리</div>
         <div className="live-row"><div className="live-dot"></div><div className="live-text">오늘 {todayVisitors}명이 함께 중보하고 있습니다</div></div>
         <div className="verse-row">
@@ -376,9 +432,12 @@ export default function App() {
               <button className="kakao-btn logged-in" onClick={handleLogout}>
                 카카오 로그인됨 · 로그아웃
               </button>
+              <button className="kakao-btn-secondary" onClick={requestTalkConsent}>
+                🔔 카톡으로 승인 알림 받기
+              </button>
               {profile?.status === 'pending' && (
-  <div className="status-badge pending">관리자 승인까지 최대 하루 정도 걸릴 수 있어요. 조금만 기다려 주세요 🙏</div>
-)}
+                <div className="status-badge pending">관리자 승인까지 최대 하루 정도 걸릴 수 있어요. 조금만 기다려 주세요 🙏</div>
+              )}
               {profile?.status === 'rejected' && (
                 <div className="status-badge rejected">이용이 제한된 계정입니다</div>
               )}
@@ -443,6 +502,9 @@ export default function App() {
                 <div className="card-name">{p.name}</div>
                 <div className="card-date">{formatDate(p.created_at)}</div>
               </div>
+              {isAdmin && p.created_by_name && (
+                <div className="posted-by">등록: {p.created_by_name}</div>
+              )}
               <div className="card-text">{p.content}</div>
               <div className="reaction-row">
                 {['heart','pray','like'].map(kind => (
@@ -488,7 +550,7 @@ export default function App() {
               ? '카카오 로그인 후, 관리자 승인을 받으면 기도제목을 볼 수 있습니다.'
               : profile?.status === 'rejected'
                 ? '이용이 제한된 계정입니다.'
-                : '관리자 승인을 기다리고 있습니다. 승인되면 기도제목이 이 자리에 표시됩니다.'}
+                : '관리자 승인까지 최대 하루 정도 걸릴 수 있어요. 승인되면 기도제목이 이 자리에 표시됩니다.'}
           </div>
         )}
       </div>
