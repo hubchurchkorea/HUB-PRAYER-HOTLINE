@@ -533,6 +533,7 @@ function openEdit(p) {
                   💬 답글 {repliesFor(p.id).length}개
                 </button>
                 <div style={{ display: 'flex', gap: 12 }}>
+                 {isAdmin && <button className="edit-prayer-btn" onClick={() => openEdit(p)}>수정</button>}
                   {isAdmin && <button className="delete-prayer-btn" onClick={() => deletePrayer(p.id)}>삭제</button>}
                   <button className="share-btn" onClick={() => handleShare(p)}>↗ 공유 {shareCountFor(p.id)}</button>
                 </div>
